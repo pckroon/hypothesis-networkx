@@ -34,7 +34,7 @@ def graph_builder(draw,
         raise ValueError('min_nodes can not be negative')
     if max_nodes is not None and min_nodes > max_nodes:
         raise ValueError('min_nodes must be less than or equal to max_nodes')
-    if max_nodes is not None and connected and max_nodes < min_nodes-1:
+    if max_nodes is not None and connected and max_edges < max_nodes-1:
         raise ValueError("It's impossible to create a connected graph of {}"
                          "nodes with less than {} edges".format(max_nodes, max_nodes-1))
 
