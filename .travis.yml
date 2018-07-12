@@ -12,7 +12,7 @@ install:
   - pip install --upgrade codecov pytest-cov
   - pip install --upgrade .
 script:
-  - pytest -vv --cov=hypothesis_networkx
+  - pytest -vv --hypothesis-show-statistics
 #after_success:
 #  - codecov
 
