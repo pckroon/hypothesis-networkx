@@ -15,7 +15,6 @@
 # limitations under the License.
 
 from hypothesis import strategies as st
-from hypothesis import note
 import networkx as nx
 
 
@@ -28,6 +27,54 @@ def graph_builder(draw,
                   min_edges=0, max_edges=None,
                   graph_type=nx.Graph,
                   self_loops=False, connected=True):
+    """
+    A :mod:`hypothesis` strategy for building networkx graphs.
+
+    Parameters
+    ----------
+    draw
+        For internal hypothesis use.
+    node_data: `hypothesis.Strategy`
+        The strategy to use to generate node attributes. Must generate a
+        mapping.
+    edge_data: `hypothesis.Strategy`
+        The strategy to use to generate edge attributes. Must generate a
+        mapping.
+    node_keys: `hypothesis.Strategy`
+        The strategy to use to generate node keys. Must generate a Hashable.
+    min_nodes: int
+        The minimum number of nodes that should be in the generated graph. Must
+        be positive.
+    max_nodes: int
+        The maximum number of nodes that should be in the generated graph. Must
+        be larger than `min_nodes`. `None` means no upper limit.
+    min_edges: int
+        The minimum number of edges that should be in the generated graph.
+    max_edges: int
+        The maximum number of edges that should be in the generated graph.
+        `None` means no upper limit.
+    graph_type: class
+        The type of graph that should be created.
+    self_loops: bool
+        Whether self loops (edges between a node and itself) are allowed.
+    connected: bool
+        If `True`, the generated graph is garuanteed to be a single connected
+        component.
+
+    Raises
+    ------
+    ValueError
+        - If `min_nodes` < 0.
+        - If `max_nodes` < `min_nodes`
+        - If the graph has to be connected, but `max_edges` is too small
+          relative to `max_nodes`.
+
+    Returns
+    -------
+    networkx.Graph
+        The created graph. The actual type is determined by the argument
+        `graph_type`.
+    """
     if min_nodes < 0:
         raise ValueError('min_nodes can not be negative')
     if max_nodes is not None and min_nodes > max_nodes:
