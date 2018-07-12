@@ -21,7 +21,7 @@ from hypothesis import given, settings, HealthCheck, note, unlimited
 import networkx as nx
 
 
-@settings(timeout=unlimited, max_examples=50,
+@settings(timeout=unlimited, max_examples=250,
           suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much,
                                  HealthCheck.data_too_large])
 @given(st.data())
@@ -41,9 +41,8 @@ def test_graph_builder(data):
     graph_type = data.draw(graph_types, label='graph type')
     node_keys = st.integers()
 
-    min_nodes = data.draw(st.integers(min_value=0, max_value=100), label='min nodes')
-    max_nodes = data.draw(st.integers(min_value=0, max_value=100), label='max nodes')
-    min_nodes, max_nodes = sorted((min_nodes, max_nodes))
+    min_nodes = data.draw(st.integers(min_value=0, max_value=15), label='min nodes')
+    max_nodes = data.draw(st.integers(min_value=min_nodes, max_value=15), label='max nodes')
 
     min_edges = data.draw(st.integers(min_value=0), label='min edges')
     max_edges = data.draw(st.one_of(st.none(), st.integers(min_value=max(min_edges, max_nodes-1))), label='max edges')
@@ -72,6 +71,9 @@ def test_graph_builder(data):
 
     if max_edges is None:
         max_edges = float('inf')
+    if max_nodes is None:
+        max_nodes = float('inf')
+
     if min_edges > max_possible_edges:
         min_edges = max_possible_edges
     if not graph:
@@ -80,14 +82,11 @@ def test_graph_builder(data):
     note('max_edges: {}'.format(max_edges))
 
     assert isinstance(graph, graph_type)
-    assert min_nodes <= len(graph.nodes)
-    if max_nodes is not None:
-        assert len(graph.nodes) <= max_nodes
+    assert min_nodes <= len(graph.nodes) <= max_nodes
     assert min_edges <= len(graph.edges) <= max_edges
     assert self_loops or nx.number_of_selfloops(graph) == 0
     if graph:
         if isinstance(graph, nx.DiGraph):
-            assert not connected or nx.is_weakly_connected(graph), "{}, {}".format(str(graph.nodes), str(graph.edges))
+            assert not connected or nx.is_weakly_connected(graph)
         else:
             assert not connected or nx.is_connected(graph)
-
