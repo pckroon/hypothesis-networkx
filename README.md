@@ -23,7 +23,7 @@ import networkx as nx
 node_data = st.fixed_dictionaries({'name': st.text(),
                                    'number': st.integers()})
 edge_data = st.fixed_dictionaries({'weight': st.floats(allow_nan=False,
-                                                        allow_infinity=False)})
+                                                       allow_infinity=False)})
 
 
 builder = graph_builder(graph_type=nx.Graph,
@@ -71,3 +71,10 @@ There are a few (minor) outstanding issues with this module:
   - Graph generation may be slow for large graphs.
   - The `min_edges` argument is not always respected when the produced graph
     is too small.
+  - It currently works for Python 2.7, but this is considered deprecated and
+    may stop working without notice.
+
+## See also
+
+[Networkx](https://networkx.github.io/documentation/stable/index.html)
+[Hypothesis](https://hypothesis.readthedocs.io/en/latest/index.html)
