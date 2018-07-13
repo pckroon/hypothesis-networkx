@@ -16,6 +16,11 @@ script:
 #after_success:
 #  - codecov
 
+branches:
+  only:
+  - master
+  - /^v\d+\.\d+(\.\d+)?(-\S*)?$/  # Tags
+
 jobs:
   fast_finish: true
   allow_failures:
