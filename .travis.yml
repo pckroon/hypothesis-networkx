@@ -8,7 +8,7 @@ env:
     - SKIP_GENERATE_AUTHORS=1
     - SKIP_WRITE_GIT_CHANGELOG=1
 install:
-  - pip install --upgrade pip setuptools
+  - pip install --upgrade pip setuptools pbr
   - pip install --upgrade codecov pytest-cov
   - pip install --upgrade .
 script:

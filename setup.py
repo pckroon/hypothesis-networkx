@@ -17,4 +17,5 @@ from setuptools import setup
 
 setup(
     pbr=True,
+    setup_requires=['pbr', 'setuptools>=30.3.0'],
 )
