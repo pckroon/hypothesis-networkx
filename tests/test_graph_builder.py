@@ -21,9 +21,7 @@ from hypothesis import given, settings, HealthCheck, note, unlimited
 import networkx as nx
 
 
-@settings(timeout=unlimited, max_examples=250,
-          suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much,
-                                 HealthCheck.data_too_large])
+@settings(max_examples=250)
 @given(st.data())
 def test_graph_builder(data):
     graph_types = st.sampled_from([nx.Graph, nx.DiGraph, nx.MultiGraph,
@@ -76,7 +74,7 @@ def test_graph_builder(data):
 
     if min_edges > max_possible_edges:
         min_edges = max_possible_edges
-    if not graph:
+    if len(graph) < 2:
         min_edges = 0
     note('min_edges: {}'.format(min_edges))
     note('max_edges: {}'.format(max_edges))
@@ -90,3 +88,7 @@ def test_graph_builder(data):
             assert not connected or nx.is_weakly_connected(graph)
         else:
             assert not connected or nx.is_connected(graph)
+
+if __name__ == '__main__':
+    test_graph_builder()
+

@@ -15,6 +15,7 @@
 # limitations under the License.
 
 from hypothesis import strategies as st
+from hypothesis import note
 import networkx as nx
 
 
@@ -85,13 +86,13 @@ def graph_builder(draw,
 
     graph = graph_type()
     # Draw node indices and their associated data
-    nodes = draw(st.lists(st.tuples(node_keys, node_data), min_size=min_nodes,
-                          max_size=max_nodes, unique_by=lambda t: t[0]))
-
-    if not nodes:
+    node_keys = draw(st.sets(node_keys, min_size=min_nodes, max_size=max_nodes))
+    
+    if not node_keys:
         return graph
-    graph.add_node(nodes[0][0], **nodes[0][1])
-    for node, data in nodes[1:]:
+    graph.add_node(node_keys.pop(), **draw(node_data))
+    for node in node_keys:
+        data = draw(node_data)
         # Add all the other nodes, and if it has to become a connected graph,
         # add an edge to a node that's already there. Draw the node we're
         # connecting to before adding the current one, otherwise we need to
@@ -107,11 +108,9 @@ def graph_builder(draw,
     # it's a "normal" graph [a, b] == [b, a]. It becomes slightly worse, since
     # DiGraph is a subclass of Graph.
     if isinstance(graph, nx.DiGraph):
-        max_possible_edges = len(nodes) * (len(nodes) - 1)
-        edge_unique = lambda e: tuple(e[0])
+        max_possible_edges = len(graph) * (len(graph) - 1)
     else:  # elif isinstance(graph, nx.Graph):
-        edge_unique = lambda e: frozenset(e[0])
-        max_possible_edges = len(nodes) * (len(nodes) - 1)//2
+        max_possible_edges = (len(graph) * (len(graph) - 1))//2
 
     # Lastly, there's Multi(Di)Graphs, which can make an infinite number of
     # edges. We'll keep it as a numeric value for now.
@@ -121,14 +120,14 @@ def graph_builder(draw,
     # And if we can make self-loops we get a few more. Note that the edge
     # (1, 1) is the same as the edge (1, 1), even in a DiGraph.
     if self_loops:
-        max_possible_edges += len(nodes)
-
+        max_possible_edges += len(graph)
     # Correct for the edges we added earlier and clamp to the range
     # (0, max_possible_edges)
     if max_edges is None:
         max_edges = max_possible_edges - len(graph.edges)
     else:
         max_edges = max_edges - len(graph.edges)
+
     if max_edges > max_possible_edges:
         max_edges = max_possible_edges
     elif max_edges < 0:
@@ -145,13 +144,14 @@ def graph_builder(draw,
 
     available_edges = list(nx.non_edges(graph))
     if self_loops:
-        available_edges.extend((n, n) for n in graph.nodes)
+        available_edges.extend((n, n) for n in graph.nodes if not graph.has_edge(n, n))
+    
+    edges_to_add = draw(st.integers(min_value=min_edges, max_value=max_edges))
 
-    node_pair = st.sampled_from(available_edges)
-    edge = st.tuples(node_pair, edge_data)
-    edges = draw(st.lists(edge, min_size=min_edges, max_size=max_edges,
-                          unique_by=edge_unique))
+    for _ in range(edges_to_add):
+        node_pair = draw(st.sampled_from(available_edges))
+        available_edges.remove(node_pair)
+        data = draw(edge_data)
+        graph.add_edge(*node_pair, **data)
 
-    for (n1, n2), data in edges:
-        graph.add_edge(n1, n2, **data)
     return graph
