@@ -19,7 +19,7 @@ script:
 branches:
   only:
   - master
-  - /^v\d+\.\d+(\.\d+)?((\.|-)\S*)?$/  # Tags
+  - /^v\d+\.\d+(\.\d+)?((\.0(a|b|c)\d+)|(\.(a|b|c)\d+\.dev\d+))?$/  # Tags
 
 jobs:
   fast_finish: true

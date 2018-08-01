@@ -21,7 +21,7 @@ from hypothesis import given, settings, HealthCheck, note, unlimited
 import networkx as nx
 
 
-@settings(max_examples=250)
+@settings(max_examples=250, suppress_health_check=[HealthCheck.too_slow])
 @given(st.data())
 def test_graph_builder(data):
     graph_types = st.sampled_from([nx.Graph, nx.DiGraph, nx.MultiGraph,
