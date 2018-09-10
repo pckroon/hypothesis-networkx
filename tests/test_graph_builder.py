@@ -17,33 +17,33 @@
 from hypothesis_networkx import graph_builder
 
 from hypothesis import strategies as st
-from hypothesis import given, settings, HealthCheck, note, unlimited
+from hypothesis import given, settings, HealthCheck, note
 import networkx as nx
 
 
 @settings(max_examples=250, suppress_health_check=[HealthCheck.too_slow])
 @given(st.data())
 def test_graph_builder(data):
+    """
+    Make sure the number of nodes and edges of the generated graphs is correct,
+    and make sure that graphs that are supposed to be connected are.
+    """
     graph_types = st.sampled_from([nx.Graph, nx.DiGraph, nx.MultiGraph,
                                    nx.MultiDiGraph, nx.OrderedGraph,
                                    nx.OrderedDiGraph, nx.OrderedMultiGraph,
                                    nx.OrderedMultiDiGraph])
-#    node_data=st.fixed_dictionaries({}),
-#    edge_data=st.fixed_dictionaries({}),
-#    node_keys=st.integers(),
-#    min_nodes=0, max_nodes=50,
-#    min_edges=0, max_edges=None,
-#    graph_type=nx.Graph,
-#    self_loops=False, connected=True
 
     graph_type = data.draw(graph_types, label='graph type')
     node_keys = st.integers()
 
-    min_nodes = data.draw(st.integers(min_value=0, max_value=15), label='min nodes')
-    max_nodes = data.draw(st.integers(min_value=min_nodes, max_value=15), label='max nodes')
+    min_nodes = data.draw(st.integers(min_value=0, max_value=15),
+                          label='min nodes')
+    max_nodes = data.draw(st.integers(min_value=min_nodes, max_value=15),
+                          label='max nodes')
 
     min_edges = data.draw(st.integers(min_value=0), label='min edges')
-    max_edges = data.draw(st.one_of(st.none(), st.integers(min_value=max(min_edges, max_nodes-1))), label='max edges')
+    max_edges = data.draw(st.one_of(st.none(), st.integers(min_value=max(min_edges, max_nodes-1))),
+                          label='max edges')
 
     self_loops = data.draw(st.booleans(), label='self loops')
     connected = data.draw(st.booleans(), label='connected')
@@ -89,6 +89,44 @@ def test_graph_builder(data):
         else:
             assert not connected or nx.is_connected(graph)
 
+
+@given(st.data())
+def test_node_edge_data(data):
+    """
+    Make sure node and edge data end up in the right place.
+    """
+    node_data = st.dictionaries(keys=st.one_of(st.text(), st.integers()),
+                                values=st.one_of(st.text(), st.integers()))
+    node_data = data.draw(node_data)
+    node_data_st = st.just(node_data)
+    edge_data = st.dictionaries(keys=st.one_of(st.text(), st.integers()),
+                                values=st.one_of(st.text(), st.integers()))
+    edge_data = data.draw(edge_data)
+    edge_data_st = st.just(edge_data)
+
+    builder = graph_builder(max_nodes=5, max_edges=None,
+                            node_data=node_data_st, edge_data=edge_data_st)
+
+    graph = data.draw(builder)
+    for node in graph:
+        assert graph.nodes[node] == node_data
+    for edge in graph.edges:
+        assert graph.edges[edge] == edge_data
+
+
+@given(st.data())
+def test_negative_max_edges(data):
+    """
+    Make sure that when max_edges < 0, max_edges becomes 0.
+    """
+    builder = graph_builder(max_nodes=5, connected=False, max_edges=-1)
+    graph = data.draw(builder)
+    note("Number of nodes: {}".format(len(graph.nodes)))
+    note("Number of edges: {}".format(len(graph.edges)))
+
+    assert len(graph.edges) == 0
+    assert len(graph.nodes) <= 5
+
+
 if __name__ == '__main__':
     test_graph_builder()
-

@@ -86,21 +86,35 @@ def graph_builder(draw,
     graph = graph_type()
     # Draw node indices and their associated data
     node_keys = draw(st.sets(node_keys, min_size=min_nodes, max_size=max_nodes))
-    
+
     if not node_keys:
         return graph
-    graph.add_node(node_keys.pop(), **draw(node_data))
+
+    node = node_keys.pop()
+    data = draw(node_data)
+    # We can't do **data, since the keys might be e.g. int instead of str.
+    graph.add_node(node)
+    for key, value in data.items():
+        graph.nodes[node][key] = value
+
     for node in node_keys:
-        data = draw(node_data)
         # Add all the other nodes, and if it has to become a connected graph,
         # add an edge to a node that's already there. Draw the node we're
         # connecting to before adding the current one, otherwise we need to
         # make sure we don't make a self-edge at the new node.
         if connected:
             edge_to = draw(st.sampled_from(list(graph.nodes)))
-        graph.add_node(node, **data)
+        # We can't do **data, since the keys might be e.g. int instead of str.
+        data = draw(node_data)
+        graph.add_node(node)
+        for key, value in data.items():
+            graph.nodes[node][key] = value
+
         if connected:
-            graph.add_edge(node, edge_to, **draw(edge_data))
+            data = draw(edge_data)
+            graph.add_edge(node, edge_to)
+            for key, value in data.items():
+                graph.edges[node, edge_to][key] = value
 
     # Now for the mess. The maximum number of edges possible depends on the
     # graph type. In addition, if it's a DiGraph, edge [a, b] != [b, a]; but if
@@ -144,13 +158,15 @@ def graph_builder(draw,
     available_edges = list(nx.non_edges(graph))
     if self_loops:
         available_edges.extend((n, n) for n in graph.nodes if not graph.has_edge(n, n))
-    
+
     edges_to_add = draw(st.integers(min_value=min_edges, max_value=max_edges))
 
     for _ in range(edges_to_add):
         node_pair = draw(st.sampled_from(available_edges))
         available_edges.remove(node_pair)
         data = draw(edge_data)
-        graph.add_edge(*node_pair, **data)
+        graph.add_edge(*node_pair)
+        for key, value in data.items():
+                graph.edges[node_pair][key] = value
 
     return graph
