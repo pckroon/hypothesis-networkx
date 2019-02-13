@@ -90,21 +90,24 @@ def test_graph_builder(data):
             assert not connected or nx.is_connected(graph)
 
 
+@settings(deadline=None)
 @given(st.data())
 def test_node_edge_data(data):
     """
     Make sure node and edge data end up in the right place.
     """
     node_data = st.dictionaries(keys=st.one_of(st.text(), st.integers()),
-                                values=st.one_of(st.text(), st.integers()))
+                                values=st.one_of(st.text(), st.integers()),
+                                max_size=2)
     node_data = data.draw(node_data)
     node_data_st = st.just(node_data)
     edge_data = st.dictionaries(keys=st.one_of(st.text(), st.integers()),
-                                values=st.one_of(st.text(), st.integers()))
+                                values=st.one_of(st.text(), st.integers()),
+                                max_size=2)
     edge_data = data.draw(edge_data)
     edge_data_st = st.just(edge_data)
 
-    builder = graph_builder(max_nodes=5, max_edges=None,
+    builder = graph_builder(max_nodes=3, max_edges=3,
                             node_data=node_data_st, edge_data=edge_data_st)
 
     graph = data.draw(builder)
