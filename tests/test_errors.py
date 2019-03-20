@@ -14,23 +14,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from hypothesis_networkx import graph_builder
+"""
+These tests make sure the appropriate errors get raised.
+"""
 import pytest
 
+from hypothesis_networkx import graph_builder
+
+# Pylint doesn't like hypothesis
+# pylint: disable=no-member, no-value-for-parameter
 
 def test_min_nodes():
+    """
+    Make sure min_nodes is positive.
+    """
     builder = graph_builder(min_nodes=-5)
     with pytest.raises(ValueError):
         builder.example()
 
 
 def test_min_max_nodes():
+    """
+    Make sure min_nodes <= max_nodes
+    """
     builder = graph_builder(min_nodes=10, max_nodes=5)
     with pytest.raises(ValueError):
         builder.example()
 
 
 def test_max_edges():
+    """
+    Make sure that max_edges is large enough to not conflict with connected=True
+    """
     builder = graph_builder(max_nodes=5, connected=True, max_edges=2)
     with pytest.raises(ValueError):
         builder.example()

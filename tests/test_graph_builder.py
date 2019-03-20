@@ -14,11 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from hypothesis_networkx import graph_builder
 
 from hypothesis import strategies as st
 from hypothesis import given, settings, HealthCheck, note
+
 import networkx as nx
+
+from hypothesis_networkx import graph_builder
+
+# Pylint doesn't like hypothesis
+# pylint: disable=no-value-for-parameter
 
 
 @settings(max_examples=250, suppress_health_check=[HealthCheck.too_slow])
