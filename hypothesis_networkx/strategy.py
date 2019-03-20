@@ -98,6 +98,10 @@ def graph_builder(draw,
 
     graph.add_nodes_from(enumerate(node_datas))
 
+    # Draw a set of initial edges that guarantee that graph will be connected.
+    # We use the invariant that all nodes < n_idx are connected. We create an
+    # edge between n_idx and one of those before so that all nodes < n_idx + 1
+    # are now connected.
     if connected:
         initial_edges = [draw(st.tuples(st.sampled_from(range(0, n_idx)),
                                         st.just(n_idx),
@@ -112,9 +116,9 @@ def graph_builder(draw,
         # a numeric value for now.
         max_possible_edges = float('inf')
     else:
-        # In addition, if it's a DiGraph, edge [a, b] != [b, a]; but if it's an
-        # undirected graph [a, b] == [b, a]. It becomes slightly worse, since
-        # DiGraph is a subclass of Graph.
+        # If it's a DiGraph, edge [a, b] != [b, a]; but if it's an undirected
+        # graph [a, b] == [b, a]. It becomes slightly worse, since DiGraph is a
+        # subclass of Graph.
         if isinstance(graph, nx.DiGraph):
             max_possible_edges = len(graph) * (len(graph) - 1)
         else:  # elif isinstance(graph, nx.Graph):
@@ -124,37 +128,48 @@ def graph_builder(draw,
         if self_loops:
             max_possible_edges += len(graph)
 
-    min_edges -= len(graph.edges)
-
-    # Clamp to the range (0, max_possible_edges)
+    # Clamp to the range (0, max_possible_edges). Note that max_possible_edges
+    # may be infinite in the case of MultiGraphs.
     if max_edges is None or max_edges > max_possible_edges:
         max_edges = max_possible_edges
     elif max_edges < 0:
+        # We will need to correct for the number of edges already added.
         max_edges = len(graph.edges)
     max_edges -= len(graph.edges)
 
+    if max_edges == float('inf'):
+        max_edges = None
+
+    # Likewise for min_edges...
+    # We already added some edges, so subtract those.
+    min_edges -= len(graph.edges)
     if min_edges < 0:
         min_edges = 0
     elif min_edges > max_edges:
         min_edges = max_edges
 
-    if max_edges == float('inf'):
-        max_edges = None
-
     def edge_filter(idx, jdx):
+        """
+        Helper function to decide whether the edge between idx and jdx can still
+        be added to graph.
+        """
         multi_edge = not graph.has_edge(idx, jdx) or isinstance(graph, nx.MultiGraph)
+        # <= because self loops
         directed = idx <= jdx or isinstance(graph, nx.DiGraph)
         self_loop = idx != jdx or self_loops
         return multi_edge and directed and self_loop
 
     options = [(idx, jdx) for jdx in graph for idx in graph if edge_filter(idx, jdx)]
     if options:
-        edge_idxs = st.lists(st.sampled_from(options),
-                             unique=not isinstance(graph, nx.MultiGraph),
-                             min_size=min_edges,
-                             max_size=max_edges)
-        edges = [(idxs, draw(edge_data)) for idxs in draw(edge_idxs)]
-        graph.add_edges_from(((*e[0], e[1]) for e in edges))
+        # We need to sample a number of items from options, these items are 
+        # possibly not unique. In addition, we need to draw the same number of
+        # items from edge_data and associate the two. To top it off, uniqueness
+        # is defined by the content of the first element of the tuple.
+        edges = st.lists(st.tuples(st.sampled_from(options), edge_data),
+                         unique_by=None if isinstance(graph, nx.MultiGraph) else lambda e: e[:-1],
+                         min_size=min_edges,
+                         max_size=max_edges)
+        graph.add_edges_from((*e[0], e[1]) for e in draw(edges))
 
     if node_keys is not None:
         new_idxs = draw(st.lists(node_keys,
