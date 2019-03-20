@@ -14,6 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Provides the :mod:`hypothesis` strategy :func:`graph_builder` that can be used
+for building networkx graphs.
+"""
+
 from hypothesis import strategies as st
 import networkx as nx
 
@@ -22,7 +27,7 @@ import networkx as nx
 def graph_builder(draw,
                   node_data=st.fixed_dictionaries({}),
                   edge_data=st.fixed_dictionaries({}),
-                  node_keys=st.integers(),
+                  node_keys=None,
                   min_nodes=0, max_nodes=25,
                   min_edges=0, max_edges=None,
                   graph_type=nx.Graph,
@@ -40,8 +45,9 @@ def graph_builder(draw,
     edge_data: `hypothesis.Strategy`
         The strategy to use to generate edge attributes. Must generate a
         mapping.
-    node_keys: `hypothesis.Strategy`
-        The strategy to use to generate node keys. Must generate a Hashable.
+    node_keys: `hypothesis.Strategy` or None.
+        The strategy to use to generate node keys. Must generate a Hashable. If
+        `None`, node keys will be taken from range(0, number_of_nodes).
     min_nodes: int
         The minimum number of nodes that should be in the generated graph. Must
         be positive.
@@ -58,7 +64,7 @@ def graph_builder(draw,
     self_loops: bool
         Whether self loops (edges between a node and itself) are allowed.
     connected: bool
-        If `True`, the generated graph is garuanteed to be a single connected
+        If `True`, the generated graph is guaranteed to be a single connected
         component.
 
     Raises
@@ -85,68 +91,48 @@ def graph_builder(draw,
 
     graph = graph_type()
     # Draw node indices and their associated data
-    node_keys = draw(st.sets(node_keys, min_size=min_nodes, max_size=max_nodes))
+    node_datas = draw(st.lists(node_data, min_size=min_nodes, max_size=max_nodes))
 
-    if not node_keys:
+    if not node_datas:
         return graph
 
-    node = node_keys.pop()
-    data = draw(node_data)
-    # We can't do **data, since the keys might be e.g. int instead of str.
-    graph.add_node(node)
-    for key, value in data.items():
-        graph.nodes[node][key] = value
+    graph.add_nodes_from(enumerate(node_datas))
 
-    for node in node_keys:
-        # Add all the other nodes, and if it has to become a connected graph,
-        # add an edge to a node that's already there. Draw the node we're
-        # connecting to before adding the current one, otherwise we need to
-        # make sure we don't make a self-edge at the new node.
-        if connected:
-            edge_to = draw(st.sampled_from(list(graph.nodes)))
-        # We can't do **data, since the keys might be e.g. int instead of str.
-        data = draw(node_data)
-        graph.add_node(node)
-        for key, value in data.items():
-            graph.nodes[node][key] = value
-
-        if connected:
-            data = draw(edge_data)
-            graph.add_edge(node, edge_to)
-            for key, value in data.items():
-                graph.edges[node, edge_to][key] = value
+    if connected:
+        initial_edges = [draw(st.tuples(st.sampled_from(range(0, n_idx)),
+                                        st.just(n_idx),
+                                        edge_data))
+                         for n_idx in range(1, len(graph))]
+        graph.add_edges_from(initial_edges)
 
     # Now for the mess. The maximum number of edges possible depends on the
-    # graph type. In addition, if it's a DiGraph, edge [a, b] != [b, a]; but if
-    # it's a "normal" graph [a, b] == [b, a]. It becomes slightly worse, since
-    # DiGraph is a subclass of Graph.
-    if isinstance(graph, nx.DiGraph):
-        max_possible_edges = len(graph) * (len(graph) - 1)
-    else:  # elif isinstance(graph, nx.Graph):
-        max_possible_edges = (len(graph) * (len(graph) - 1))//2
-
-    # Lastly, there's Multi(Di)Graphs, which can make an infinite number of
-    # edges. We'll keep it as a numeric value for now.
+    # graph type.
     if isinstance(graph, nx.MultiGraph):
+        # Multi(Di)Graphs can make an infinite number of edges. We'll keep it as
+        # a numeric value for now.
         max_possible_edges = float('inf')
-
-    # And if we can make self-loops we get a few more. Note that the edge
-    # (1, 1) is the same as the edge (1, 1), even in a DiGraph.
-    if self_loops:
-        max_possible_edges += len(graph)
-    # Correct for the edges we added earlier and clamp to the range
-    # (0, max_possible_edges)
-    if max_edges is None:
-        max_edges = max_possible_edges - len(graph.edges)
     else:
-        max_edges = max_edges - len(graph.edges)
+        # In addition, if it's a DiGraph, edge [a, b] != [b, a]; but if it's an
+        # undirected graph [a, b] == [b, a]. It becomes slightly worse, since
+        # DiGraph is a subclass of Graph.
+        if isinstance(graph, nx.DiGraph):
+            max_possible_edges = len(graph) * (len(graph) - 1)
+        else:  # elif isinstance(graph, nx.Graph):
+            max_possible_edges = (len(graph) * (len(graph) - 1))//2
+        # And if we can make self-loops we get a few more. Note that the edge
+        # (1, 1) is the same as the edge (1, 1), even in a DiGraph.
+        if self_loops:
+            max_possible_edges += len(graph)
 
-    if max_edges > max_possible_edges:
+    min_edges -= len(graph.edges)
+
+    # Clamp to the range (0, max_possible_edges)
+    if max_edges is None or max_edges > max_possible_edges:
         max_edges = max_possible_edges
     elif max_edges < 0:
-        max_edges = 0
+        max_edges = len(graph.edges)
+    max_edges -= len(graph.edges)
 
-    min_edges = min_edges - len(graph.edges)
     if min_edges < 0:
         min_edges = 0
     elif min_edges > max_edges:
@@ -155,18 +141,26 @@ def graph_builder(draw,
     if max_edges == float('inf'):
         max_edges = None
 
-    available_edges = list(nx.non_edges(graph))
-    if self_loops:
-        available_edges.extend((n, n) for n in graph.nodes if not graph.has_edge(n, n))
+    def edge_filter(idx, jdx):
+        multi_edge = not graph.has_edge(idx, jdx) or isinstance(graph, nx.MultiGraph)
+        directed = idx <= jdx or isinstance(graph, nx.DiGraph)
+        self_loop = idx != jdx or self_loops
+        return multi_edge and directed and self_loop
 
-    edges_to_add = draw(st.integers(min_value=min_edges, max_value=max_edges))
+    options = [(idx, jdx) for jdx in graph for idx in graph if edge_filter(idx, jdx)]
+    if options:
+        edge_idxs = st.lists(st.sampled_from(options),
+                             unique=not isinstance(graph, nx.MultiGraph),
+                             min_size=min_edges,
+                             max_size=max_edges)
+        edges = [(idxs, draw(edge_data)) for idxs in draw(edge_idxs)]
+        graph.add_edges_from(((*e[0], e[1]) for e in edges))
 
-    for _ in range(edges_to_add):
-        node_pair = draw(st.sampled_from(available_edges))
-        available_edges.remove(node_pair)
-        data = draw(edge_data)
-        graph.add_edge(*node_pair)
-        for key, value in data.items():
-                graph.edges[node_pair][key] = value
+    if node_keys is not None:
+        new_idxs = draw(st.lists(node_keys,
+                                 unique=True,
+                                 min_size=len(graph),
+                                 max_size=len(graph)))
+        graph = nx.relabel_nodes(graph, dict(zip(list(graph), new_idxs)))
 
     return graph
