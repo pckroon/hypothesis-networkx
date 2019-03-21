@@ -169,7 +169,7 @@ def graph_builder(draw,
                          unique_by=None if isinstance(graph, nx.MultiGraph) else lambda e: e[:-1],
                          min_size=min_edges,
                          max_size=max_edges)
-        graph.add_edges_from((*e[0], e[1]) for e in draw(edges))
+        graph.add_edges_from((e[0][0], e[0][1], e[1]) for e in draw(edges))
 
     if node_keys is not None:
         new_idxs = draw(st.lists(node_keys,
