@@ -55,10 +55,12 @@ def graph_builder(draw,
         The maximum number of nodes that should be in the generated graph. Must
         be larger than `min_nodes`. `None` means no upper limit.
     min_edges: int
-        The minimum number of edges that should be in the generated graph.
+        The minimum number of edges that should be in the generated graph. Less
+        edges may be added if the produced graph contains too few nodes.
     max_edges: int or None
         The maximum number of edges that should be in the generated graph.
-        `None` means no upper limit.
+        `None` means no upper limit. Note that if `connected` is True more edges
+        may be added.
     graph_type: class
         The type of graph that should be created.
     self_loops: bool
@@ -90,9 +92,9 @@ def graph_builder(draw,
                          "nodes with less than {} edges".format(max_nodes, max_nodes-1))
 
     graph = graph_type()
-
     is_multigraph = graph.is_multigraph()
     is_directed = graph.is_directed()
+
     # Draw node indices and their associated data
     node_datas = draw(st.lists(node_data, min_size=min_nodes, max_size=max_nodes))
 
