@@ -41,7 +41,7 @@ print(graph.edges(data=True))
 ```
 
 Of course this builder is a valid hypothesis strategy, and using it to just
-make examples is not super usefull. Instead, you can (and should) use it in
+make examples is not super useful. Instead, you can (and should) use it in
 your testing framework:
 
 ```python3
@@ -54,12 +54,21 @@ def test_my_function(graph):
 ```
 
 The meaning of the arguments given to `graph_builder` are pretty
-self-explanatory, but they *must* be given as keyword arguments. Of particular
-note are the following arguments:
-
-  - `graph_type`: This function (or class) will be called to create an empty
-                  initial graph.
-  - `connected`: If True, the generated graph is garuanteed to be a single
+self-explanatory, but they *must* be given as keyword arguments. 
+  - `node_data`: The strategy from which node attributes will be drawn.
+  - `edge_data`: The strategy from which edge attributes will be drawn.
+  - `node_keys`: Either the strategy from which node keys will be draw, or
+                 None. If None, node keys will be integers from the range (0, number of nodes).
+  - `min_nodes` and `max_nodes`: The minimum and maximum number of nodes the 
+                                 produced graphs will contain.
+  - `min_edges` and `max_edges`: The minimum and maximum number of edges the
+                                 produced graphs will contain. Note that less 
+                                 edges than `min_edges` may be added if there 
+                                 are not enough nodes, and more than
+                                 `max_edges` if `connected` is True.
+  - `graph_type`: This function (or class) will be called without arguments to
+                  create an empty initial graph.
+  - `connected`: If True, the generated graph is guaranteed to be a single
                  connected component.
   - `self_loops`: If False, there will be no self-loops in the generated graph.
                   Self-loops are edges between a node and itself.
@@ -71,6 +80,7 @@ There are a few (minor) outstanding issues with this module:
   - Graph generation may be slow for large graphs.
   - The `min_edges` argument is not always respected when the produced graph
     is too small.
+  - The `max_edges` argument is not always respected if `connected` is True.
   - It currently works for Python 2.7, but this is considered deprecated and
     may stop working without notice.
 
