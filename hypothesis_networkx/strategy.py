@@ -39,24 +39,24 @@ def graph_builder(draw,
     ----------
     draw
         For internal hypothesis use.
-    node_data: `hypothesis.Strategy`
+    node_data: `hypothesis.SearchStrategy[dict]`
         The strategy to use to generate node attributes. Must generate a
         mapping.
-    edge_data: `hypothesis.Strategy`
+    edge_data: `hypothesis.SearchStrategy[dict]`
         The strategy to use to generate edge attributes. Must generate a
         mapping.
-    node_keys: `hypothesis.Strategy` or None.
+    node_keys: `hypothesis.SearchStrategy[collections.abc.Hashable]` or None
         The strategy to use to generate node keys. Must generate a Hashable. If
         `None`, node keys will be taken from range(0, number_of_nodes).
     min_nodes: int
         The minimum number of nodes that should be in the generated graph. Must
         be positive.
-    max_nodes: int
+    max_nodes: int or None
         The maximum number of nodes that should be in the generated graph. Must
         be larger than `min_nodes`. `None` means no upper limit.
     min_edges: int
         The minimum number of edges that should be in the generated graph.
-    max_edges: int
+    max_edges: int or None
         The maximum number of edges that should be in the generated graph.
         `None` means no upper limit.
     graph_type: class
@@ -64,8 +64,8 @@ def graph_builder(draw,
     self_loops: bool
         Whether self loops (edges between a node and itself) are allowed.
     connected: bool
-        If `True`, the generated graph is guaranteed to be a single connected
-        component.
+        If `True`, the generated graph is guaranteed to be a single (weakly)
+        connected component.
 
     Raises
     ------
