@@ -14,11 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from hypothesis_networkx import graph_builder
 
 from hypothesis import strategies as st
 from hypothesis import given, settings, HealthCheck, note
+
 import networkx as nx
+
+from hypothesis_networkx import graph_builder
+
+# Pylint doesn't like hypothesis
+# pylint: disable=no-value-for-parameter
 
 
 @settings(max_examples=250, suppress_health_check=[HealthCheck.too_slow])
@@ -36,14 +41,22 @@ def test_graph_builder(data):
     graph_type = data.draw(graph_types, label='graph type')
     node_keys = st.integers()
 
-    min_nodes = data.draw(st.integers(min_value=0, max_value=15),
+    multigraph = graph_type in [nx.MultiGraph, nx.MultiDiGraph,
+                                nx.OrderedMultiGraph, nx.OrderedMultiDiGraph]
+
+    min_nodes = data.draw(st.integers(min_value=0, max_value=25),
                           label='min nodes')
-    max_nodes = data.draw(st.integers(min_value=min_nodes, max_value=15),
+    max_nodes = data.draw(st.integers(min_value=min_nodes, max_value=25),
                           label='max nodes')
 
-    min_edges = data.draw(st.integers(min_value=0), label='min edges')
+    max_min_edges = None if not multigraph else 50
+    min_edges = data.draw(st.integers(min_value=0, max_value=max_min_edges),
+                          label='min edges')
     max_edges = data.draw(st.one_of(st.none(), st.integers(min_value=max(min_edges, max_nodes-1))),
                           label='max edges')
+
+    if multigraph:
+        max_edges = min(50, max_edges) if max_edges else 50
 
     self_loops = data.draw(st.booleans(), label='self loops')
     connected = data.draw(st.booleans(), label='connected')
@@ -115,6 +128,21 @@ def test_node_edge_data(data):
         assert graph.nodes[node] == node_data
     for edge in graph.edges:
         assert graph.edges[edge] == edge_data
+
+
+@given(st.data())
+def test_node_keys(data):
+    """
+    Make sure node keys are drawn from the correct strategy.
+    """
+    size = 5
+    base_keys = st.one_of(st.integers(), st.text())
+    node_keys = st.sets(st.recursive(base_keys, lambda s: st.tuples(s, s)),
+                        min_size=size, max_size=size)
+    keys = data.draw(node_keys)
+    graph = data.draw(graph_builder(min_nodes=size, max_nodes=size,
+                                    node_keys=st.sampled_from(list(keys))))
+    assert set(graph.nodes) == set(keys)
 
 
 @given(st.data())
