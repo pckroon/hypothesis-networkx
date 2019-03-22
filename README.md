@@ -1,5 +1,5 @@
 [![Build
-Status](https://travis-ci.org/pckroon/hypothesis-networkx.svg?branch=master)](https://travis-ci.org/pckroon/hypothesis-networkx)i
+Status](https://travis-ci.org/pckroon/hypothesis-networkx.svg?branch=master)](https://travis-ci.org/pckroon/hypothesis-networkx)
 [![codecov](https://codecov.io/gh/pckroon/hypothesis-networkx/branch/master/graph/badge.svg)](https://codecov.io/gh/pckroon/hypothesis-networkx)
 
 # Hypothesis-networkx
