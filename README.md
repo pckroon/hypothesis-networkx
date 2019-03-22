@@ -1,3 +1,7 @@
+[![Build
+Status](https://travis-ci.org/pckroon/hypothesis-networkx.svg?branch=master)](https://travis-ci.org/pckroon/hypothesis-networkx)
+[![codecov](https://codecov.io/gh/pckroon/hypothesis-networkx/branch/master/graph/badge.svg)](https://codecov.io/gh/pckroon/hypothesis-networkx)
+
 # Hypothesis-networkx
 
 This module provides a Hypothesis strategy for generating networkx graphs.
@@ -87,4 +91,5 @@ There are a few (minor) outstanding issues with this module:
 ## See also
 
 [Networkx](https://networkx.github.io/documentation/stable/index.html)
+
 [Hypothesis](https://hypothesis.readthedocs.io/en/latest/index.html)

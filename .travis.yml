@@ -7,14 +7,18 @@ env:
   global:
     - SKIP_GENERATE_AUTHORS=1
     - SKIP_WRITE_GIT_CHANGELOG=1
-install:
+  matrix:
+    - CODECOV=true
+before_install:
   - pip install --upgrade pip setuptools pbr
-  - pip install --upgrade codecov pytest-cov
+install:
   - pip install --upgrade .
+before_script:
+  - pip install --upgrade codecov pytest-cov
 script:
-  - pytest -vv --hypothesis-show-statistics
-#after_success:
-#  - codecov
+  - pytest --cov=hypothesis_networkx --hypothesis-show-statistics
+after_success:
+  - if [[ ${CODECOV} == true ]]; then codecov; fi
 
 branches:
   only:
@@ -38,6 +42,7 @@ jobs:
     - python: "3.6-dev"
     - python: "3.7-dev"
     - python: "3.8-dev"
+      env: CODECOV=false
 
 #    - stage: docs
 #      python: "3.5"
