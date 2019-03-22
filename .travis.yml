@@ -16,7 +16,7 @@ install:
 before_script:
   - pip install --upgrade codecov pytest-cov
 script:
-  - pytest --cov --hypothesis-show-statistics
+  - pytest --cov=hypothesis_networkx --hypothesis-show-statistics
 after_success:
   - if [[ ${CODECOV} == true ]]; then codecov; fi
 
