@@ -26,7 +26,7 @@ from hypothesis_networkx import graph_builder
 # pylint: disable=no-value-for-parameter
 
 
-@settings(max_examples=250)
+@settings(max_examples=250, suppress_health_check=[HealthCheck.too_slow])
 @given(st.data())
 def test_graph_builder(data):
     """
