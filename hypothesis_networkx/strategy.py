@@ -111,8 +111,7 @@ def graph_builder(draw,
         # Shrink towards high index, so shrink to the path graph. Otherwise
         # it'll shrink to the star graph.
         initial_edges = [draw(st.tuples(st.integers(-(n_idx-1), 0).map(lambda x: -x),
-                                        st.just(n_idx),
-                                        edge_data))
+                                        st.just(n_idx)))
                          for n_idx in range(1, len(graph))]
         graph.add_edges_from(initial_edges)
 
@@ -149,7 +148,7 @@ def graph_builder(draw,
         be added to graph.
         """
         # <= because self loops
-        idx, jdx, *data = edge
+        idx, jdx = edge
         return ((not graph.has_edge(idx, jdx) or is_multigraph) and
                 (idx <= jdx or is_directed) and
                 (idx != jdx or self_loops))
@@ -162,13 +161,20 @@ def graph_builder(draw,
         st.tuples(
             st.integers(min_value=0, max_value=len(graph) - 1),
             st.integers(min_value=0, max_value=len(graph) - 1),
-            edge_data
         ).filter(edge_filter),
-        unique_by=None if is_multigraph else lambda e: e[:-1],
+        unique=not is_multigraph,
         min_size=min_edges,
         max_size=max_edges
     )
     graph.add_edges_from(draw(edges))
+
+    edge_datas = draw(st.lists(
+        edge_data,
+        min_size=len(graph.edges),
+        max_size=len(graph.edges))
+    )
+    for edge, data in zip(graph.edges, edge_datas):
+        graph.edges[edge].update(data)
 
     if node_keys is not None:
         new_idxs = draw(st.sets(node_keys,
