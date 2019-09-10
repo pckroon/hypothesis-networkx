@@ -157,7 +157,3 @@ def test_negative_max_edges(data):
 
     assert len(graph.edges) == 0
     assert len(graph.nodes) <= 5
-
-
-if __name__ == '__main__':
-    test_graph_builder()

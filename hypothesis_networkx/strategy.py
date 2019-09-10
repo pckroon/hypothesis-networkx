@@ -111,36 +111,26 @@ def graph_builder(draw,
         # Shrink towards high index, so shrink to the path graph. Otherwise
         # it'll shrink to the star graph.
         initial_edges = [draw(st.tuples(st.integers(-(n_idx-1), 0).map(lambda x: -x),
-                                        st.just(n_idx),
-                                        edge_data))
+                                        st.just(n_idx)))
                          for n_idx in range(1, len(graph))]
         graph.add_edges_from(initial_edges)
 
-    def edge_filter(idx, jdx):
-        """
-        Helper function to decide whether the edge between idx and jdx can still
-        be added to graph.
-        """
-        # <= because self loops
-        return ((not graph.has_edge(idx, jdx) or is_multigraph) and
-                (idx <= jdx or is_directed) and
-                (idx != jdx or self_loops))
-
-    available_edges = [(idx, jdx) for jdx in graph for idx in graph
-                       if edge_filter(idx, jdx)]
-
     # Now for the mess. The maximum number of edges possible depends on the
     # graph type.
+    if not is_multigraph:
+        # Multi(Di)Graphs can make an infinite number of edges. For everything
+        # else we clamp the range to (0, max_possible_edges)
+        max_possible_edges = len(graph) * (len(graph) - 1)
+        if is_directed:
+            max_possible_edges *= 2
+        if self_loops:
+            max_possible_edges += len(graph)
+        if max_edges is None or max_edges > max_possible_edges:
+            max_edges = max_possible_edges
     if max_edges is not None:
         # Correct for number of edges already made if graph is connected.
         # This may mean we added more edges than originally allowed.
         max_edges -= len(graph.edges)
-    if not is_multigraph:
-        # Multi(Di)Graphs can make an infinite number of edges. For everything
-        # else we clamp the range to (0, max_possible_edges)
-        max_possible_edges = len(available_edges)
-        if max_edges is None or max_edges > max_possible_edges:
-            max_edges = max_possible_edges
     if max_edges < 0:
         max_edges = 0
 
@@ -152,35 +142,44 @@ def graph_builder(draw,
     elif min_edges > max_edges:
         min_edges = max_edges
 
+    def edge_filter(edge):
+        """
+        Helper function to decide whether the edge between idx and jdx can still
+        be added to graph.
+        """
+        # <= because self loops
+        idx, jdx = edge
+        return ((not graph.has_edge(idx, jdx) or is_multigraph) and
+                (idx <= jdx or is_directed) and
+                (idx != jdx or self_loops))
+
     # We need to sample a number of items from options, these items are 
     # possibly not unique. In addition, we need to draw the same number of
     # items from edge_data and associate the two. To top it off, uniqueness
     # is defined by the content of the first element of the tuple.
-    if is_multigraph:
-        # This is the recommended way because it shrinks better, but it is
-        # prohibitively slow if too many of the available edge have to be drawn,
-        # and they need to be unique.
-        # See https://github.com/HypothesisWorks/hypothesis/issues/1887
-        edges = st.lists(st.tuples(st.sampled_from(available_edges), edge_data),
-                         # unique_by=None if is_multigraph else lambda e: e[:-1],
-                         min_size=min_edges,
-                         max_size=max_edges)
-        graph.add_edges_from((e[0][0], e[0][1], e[1]) for e in draw(edges))
-    else:
-        # Not the recommended way, but way faster if edges have to be unique
-        # Based on https://github.com/HypothesisWorks/hypothesis/issues/1393#issuecomment-409505039
-        edges = []
-        for _ in range(draw(st.integers(min_edges, max_edges))):
-            idx, jdx = draw(st.sampled_from(available_edges))
-            available_edges.remove((idx, jdx))
-            edges.append((idx, jdx, draw(edge_data)))
-        graph.add_edges_from(edges)
+    edges = st.lists(
+        st.tuples(
+            st.integers(min_value=0, max_value=len(graph) - 1),
+            st.integers(min_value=0, max_value=len(graph) - 1),
+        ).filter(edge_filter),
+        unique=not is_multigraph,
+        min_size=min_edges,
+        max_size=max_edges
+    )
+    graph.add_edges_from(draw(edges))
+
+    edge_datas = draw(st.lists(
+        edge_data,
+        min_size=len(graph.edges),
+        max_size=len(graph.edges))
+    )
+    for edge, data in zip(graph.edges, edge_datas):
+        graph.edges[edge].update(data)
 
     if node_keys is not None:
-        new_idxs = draw(st.lists(node_keys,
-                                 unique=True,
-                                 min_size=len(graph),
-                                 max_size=len(graph)))
-        graph = nx.relabel_nodes(graph, dict(zip(list(graph), new_idxs)))
+        new_idxs = draw(st.sets(node_keys,
+                                min_size=len(graph),
+                                max_size=len(graph)))
+        graph = nx.relabel_nodes(graph, dict(zip(list(graph), list(new_idxs))))
 
     return graph
