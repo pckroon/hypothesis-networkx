@@ -14,7 +14,7 @@ before_install:
 install:
   - pip install --upgrade .
 before_script:
-  - pip install --upgrade codecov pytest-cov
+  - pip install --upgrade codecov pytest-cov pytest
 script:
   - pytest --cov=hypothesis_networkx --hypothesis-show-statistics
 after_success:
@@ -28,13 +28,11 @@ branches:
 jobs:
   fast_finish: true
   allow_failures:
-    - python: "2.7"
     - python: "3.5-dev"
     - python: "3.6-dev"
     - python: "3.7-dev"
     - python: "3.8-dev"
   include:
-    - python: "2.7"
     - python: "3.5"
     - python: "3.6"
     - python: "3.7"
@@ -64,7 +62,7 @@ jobs:
 #        - python run_pylint.py --disable=fixme --fail-under=9.5 bin/martinize2
 #      after_success: skip
     - stage: deploy
-      python: "3.7"
+      python: "3.8"
       script: skip
       deploy:
         user: pckroon

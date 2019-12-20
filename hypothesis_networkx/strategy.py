@@ -153,7 +153,7 @@ def graph_builder(draw,
                 (idx <= jdx or is_directed) and
                 (idx != jdx or self_loops))
 
-    # We need to sample a number of items from options, these items are 
+    # We need to sample a number of items from options, these items are
     # possibly not unique. In addition, we need to draw the same number of
     # items from edge_data and associate the two. To top it off, uniqueness
     # is defined by the content of the first element of the tuple.
@@ -171,8 +171,8 @@ def graph_builder(draw,
     edge_datas = draw(st.lists(
         edge_data,
         min_size=len(graph.edges),
-        max_size=len(graph.edges))
-    )
+        max_size=len(graph.edges)
+    ))
     for edge, data in zip(graph.edges, edge_datas):
         graph.edges[edge].update(data)
 
