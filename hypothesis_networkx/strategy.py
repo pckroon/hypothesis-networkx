@@ -131,15 +131,15 @@ def graph_builder(draw,
         # Correct for number of edges already made if graph is connected.
         # This may mean we added more edges than originally allowed.
         max_edges -= len(graph.edges)
-    if max_edges < 0:
-        max_edges = 0
+        if max_edges < 0:
+            max_edges = 0
 
     # Likewise for min_edges
     # We already added some edges, so subtract those.
     min_edges -= len(graph.edges)
     if min_edges < 0:
         min_edges = 0
-    elif min_edges > max_edges:
+    elif max_edges is not None and min_edges > max_edges:
         min_edges = max_edges
 
     def edge_filter(edge):

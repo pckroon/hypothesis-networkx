@@ -103,6 +103,13 @@ def test_graph_builder(data):
             assert not connected or nx.is_connected(graph)
 
 
+def test_multigraph_max_edges_none():
+    try:
+        graph_builder(graph_type=nx.MultiGraph, max_edges=None).example()
+    except Exception:
+        pytest.fail()
+
+
 @settings(deadline=None)
 @given(st.data())
 def test_node_edge_data(data):
