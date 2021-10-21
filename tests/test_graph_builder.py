@@ -19,6 +19,7 @@ from hypothesis import strategies as st
 from hypothesis import given, settings, HealthCheck, note
 
 import networkx as nx
+import pytest
 
 from hypothesis_networkx import graph_builder
 
