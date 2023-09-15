@@ -35,15 +35,12 @@ def test_graph_builder(data):
     and make sure that graphs that are supposed to be connected are.
     """
     graph_types = st.sampled_from([nx.Graph, nx.DiGraph, nx.MultiGraph,
-                                   nx.MultiDiGraph, nx.OrderedGraph,
-                                   nx.OrderedDiGraph, nx.OrderedMultiGraph,
-                                   nx.OrderedMultiDiGraph])
+                                   nx.MultiDiGraph])
 
     graph_type = data.draw(graph_types, label='graph type')
     node_keys = st.integers()
 
-    multigraph = graph_type in [nx.MultiGraph, nx.MultiDiGraph,
-                                nx.OrderedMultiGraph, nx.OrderedMultiDiGraph]
+    multigraph = graph_type in [nx.MultiGraph, nx.MultiDiGraph]
 
     min_nodes = data.draw(st.integers(min_value=0, max_value=25),
                           label='min nodes')
